@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Path of Greatness</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Fathom - beautiful, simple website analytics -->
+    <script src="https://cdn.usefathom.com/script.js" data-site="MSSBXNNZ" defer></script>
+    <!-- / Fathom -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body x-data="game" x-init="init()">
+    <div class="container">
+        <!-- Header (only show after character creation) -->
+        <header x-show="character">
+            <div class="character-info">
+                <h1 x-text="character?.name || 'Seeker'"></h1>
+                <p class="order" x-text="character?.order"></p>
+            </div>
+            <div class="cost-display">
+                Cost: $<span x-text="totalCost.toFixed(4)"></span>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div class="loading" x-show="loading">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Error State -->
+        <div class="error" x-show="error">
+            <p x-text="error"></p>
+            <button class="retry-button" @click="error = null; refreshState()">Retry</button>
+        </div>
+
+        <!-- Main Content -->
+        <main x-show="!loading && !error">
+            <!-- Welcome -->
+            <div class="screen welcome-screen" x-show="state === 'welcome'">
+                <div class="content center">
+                    <h1 class="title-large" x-text="uiData.title"></h1>
+                    <p class="subtitle" x-text="uiData.subtitle"></p>
+                    <p class="description" x-text="uiData.description"></p>
+                    <button class="primary-button" @click="advance('start', {})" x-text="uiData.action"></button>
+                </div>
+            </div>
+
+            <!-- Greatness Mirror -->
+            <div class="screen mirror-screen" x-show="state === 'greatness_mirror'">
+                <div class="content center">
+                    <h2 x-text="uiData.title"></h2>
+                    <p class="description" x-text="uiData.description"></p>
+                    <input
+                        type="text"
+                        class="mirror-input"
+                        x-model="inputData.admired_person"
+                        :placeholder="uiData.prompt"
+                        @keyup.enter="advance('submit', {admired_person: inputData.admired_person})"
+                    >
+                    <button
+                        class="primary-button"
+                        @click="advance('submit', {admired_person: inputData.admired_person})"
+                        x-text="uiData.action"
+                        :disabled="!inputData.admired_person"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Order Reveal -->
+            <div class="screen order-reveal-screen" x-show="state === 'order_reveal'">
+                <div class="content center">
+                    <h2 class="title-large" x-text="uiData.title"></h2>
+                    <p class="description large" x-text="uiData.description"></p>
+                    <div class="archetypes">
+                        <p class="archetypes-label">Choose your archetype:</p>
+                        <template x-for="archetype in uiData.archetypes" :key="archetype">
+                            <button
+                                class="archetype-button"
+                                @click="selectArchetype(archetype)"
+                                x-text="archetype"
+                            ></button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Character Creation -->
+            <div class="screen character-creation-screen" x-show="state === 'character_creation'">
+                <div class="content">
+                    <h2 x-text="uiData.title"></h2>
+                    <p class="description" x-text="uiData.description"></p>
+                    <form @submit.prevent="createCharacter()">
+                        <template x-for="field in uiData.fields" :key="field.name">
+                            <div class="form-field">
+                                <label :for="field.name" x-text="field.label"></label>
+                                <input
+                                    :type="field.type"
+                                    :name="field.name"
+                                    :id="field.name"
+                                    x-model="inputData[field.name]"
+                                    required
+                                >
+                            </div>
+                        </template>
+                        <button type="submit" class="primary-button" x-text="uiData.action"></button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Chapter Before -->
+            <div class="screen chapter-screen before" x-show="state === 'chapter_before'">
+                <div class="content">
+                    <div class="chapter-header">
+                        <div class="progress-bar">
+                            <div class="progress-fill" :style="`width: ${(uiData.chapter / uiData.total_chapters) * 100}%`"></div>
+                        </div>
+                        <p class="chapter-number">Chapter <span x-text="uiData.chapter"></span> of <span x-text="uiData.total_chapters"></span></p>
+                        <h2 class="chapter-title" x-text="uiData.title"></h2>
+                        <p class="chapter-subtitle before-label" x-text="uiData.subtitle"></p>
+                        <p class="chapter-description" x-text="uiData.description"></p>
+                    </div>
+
+                    <div class="narrative-box before-narrative" x-show="uiData.narrative">
+                        <p x-text="uiData.narrative"></p>
+                    </div>
+
+                    <div x-show="!uiData.narrative" class="loading">
+                        <div class="spinner"></div>
+                        <p>Generating your narrative...</p>
+                    </div>
+
+                    <button
+                        class="primary-button"
+                        @click="advance('transform', {})"
+                        x-text="uiData.action"
+                        :disabled="!uiData.narrative"
+                        x-show="uiData.narrative"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Chapter After -->
+            <div class="screen chapter-screen after" x-show="state === 'chapter_after'">
+                <div class="content">
+                    <div class="chapter-header">
+                        <div class="progress-bar">
+                            <div class="progress-fill" :style="`width: ${(uiData.chapter / uiData.total_chapters) * 100}%`"></div>
+                        </div>
+                        <p class="chapter-number">Chapter <span x-text="uiData.chapter"></span> of <span x-text="uiData.total_chapters"></span></p>
+                        <h2 class="chapter-title" x-text="uiData.title"></h2>
+                        <p class="chapter-subtitle after-label" x-text="uiData.subtitle"></p>
+                    </div>
+
+                    <div class="narrative-box after-narrative">
+                        <p x-text="uiData.narrative"></p>
+                    </div>
+
+                    <div class="transformation-box">
+                        <p class="transformation-label">Transformation</p>
+                        <p x-text="uiData.transformation"></p>
+                    </div>
+
+                    <button class="primary-button" @click="advance('continue', {})" x-text="uiData.action"></button>
+                </div>
+            </div>
+
+            <!-- Completion -->
+            <div class="screen completion-screen" x-show="state === 'completion'">
+                <div class="content">
+                    <h2 class="title-large" x-text="uiData.title"></h2>
+                    <p class="subtitle" x-text="uiData.subtitle"></p>
+                    <p class="description" x-text="uiData.description"></p>
+
+                    <div class="timeline">
+                        <template x-for="event in uiData.timeline" :key="event.chapter">
+                            <div class="timeline-item">
+                                <div class="timeline-number">
+                                    <span x-text="event.chapter"></span>
+                                </div>
+                                <div class="timeline-content">
+                                    <p class="timeline-narrative" x-text="event.narrative"></p>
+                                    <p class="timeline-transformation" x-text="event.transformation"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="completion-cost">
+                        <p>Total Journey Cost: <strong>$<span x-text="totalCost.toFixed(4)"></span></strong></p>
+                    </div>
+
+                    <button class="primary-button" @click="advance('view_offer', {})" x-text="uiData.action"></button>
+                </div>
+            </div>
+
+            <!-- Sales Page -->
+            <div class="screen sales-screen" x-show="state === 'sales_page'">
+                <div class="sales-content">
+                    <h1 class="sales-headline" x-text="uiData.headline || 'THE PATH OF GREATNESS'"></h1>
+
+                    <div class="sales-hook" x-html="formatText(uiData.hook)"></div>
+
+                    <div class="sales-section proof">
+                        <h3>What You Just Experienced</h3>
+                        <p x-text="uiData.transformation_proof"></p>
+                        <div class="cost-badge">
+                            <span class="cost-label">Your Journey Cost:</span>
+                            <span class="cost-value">$<span x-text="totalCost.toFixed(4)"></span></span>
+                        </div>
+                    </div>
+
+                    <div class="sales-section offer">
+                        <h3>What You Get in Chapter 1: The $50 Coherence Breakthrough</h3>
+                        <p x-html="formatText(uiData.offer_description)"></p>
+
+                        <div class="offer-features">
+                            <div class="feature">✔ The 24-Hour Coherence Challenge</div>
+                            <div class="feature">✔ The Coherence Logbook</div>
+                            <div class="feature">✔ Your First "Seal"</div>
+                            <div class="feature">✔ The First Transformation</div>
+                        </div>
+
+                        <div class="price-box">
+                            <p class="price-label">Chapter 1</p>
+                            <p class="price">$50</p>
+                            <p class="price-sub">Worth $500. Given to you for $50.</p>
+                        </div>
+                    </div>
+
+                    <div class="sales-section guarantee">
+                        <h3>The Guarantee</h3>
+                        <p x-text="uiData.guarantee"></p>
+                    </div>
+
+                    <div class="sales-section cta-section">
+                        <a href="https://buy.stripe.com/eVq14nbln3VOc064gg" class="cta-button" target="_blank" @click="trackEvent('cta_clicked')">
+                            <span x-text="uiData.cta || 'Start Chapter 1 Now'"></span>
+                            <span class="cta-arrow">→</span>
+                        </a>
+                        <p class="urgency" x-text="uiData.urgency"></p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

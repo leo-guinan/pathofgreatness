@@ -1,0 +1,9 @@
+# Don't include these in Docker image
+data/
+*.pyc
+__pycache__/
+.env
+.git/
+.gitignore
+README.md
+ARCHITECTURE.md
