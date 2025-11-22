@@ -286,7 +286,7 @@ For a complete 8-chapter journey:
 ```
 the-greatness-path/
 ├── main.py                 # FastAPI app entry point
-├── state_machine.py        # Core game state machine
+├── state_machine_simple.py # Core game state machine
 ├── models.py              # Data models & enums
 ├── database.py            # SQLite operations
 ├── openrouter.py          # OpenRouter API client

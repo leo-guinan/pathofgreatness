@@ -291,7 +291,7 @@ httpx==0.25.1  # For OpenRouter API calls
 ```
 the-greatness-path/
 ├── main.py                 # FastAPI app entry point
-├── state_machine.py        # State machine logic
+├── state_machine_simple.py # State machine logic
 ├── models.py              # Data models
 ├── database.py            # SQLite operations
 ├── openrouter.py          # OpenRouter client
