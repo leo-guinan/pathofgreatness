@@ -104,6 +104,55 @@ docker-compose -f docker-compose.prod.yml exec certbot certbot certificates
 - `DEPLOYMENT.md` - Full deployment guide
 - `QUICK_DEPLOY.md` - This file
 
+## Troubleshooting
+
+### Port 80/443 Already in Use?
+
+**Diagnose what's using the ports:**
+```bash
+bash diagnose-server.sh
+```
+
+**Clean up existing services:**
+```bash
+bash cleanup-server.sh
+```
+
+**Then use standalone SSL setup:**
+```bash
+nano init-ssl-standalone.sh  # Change email
+bash init-ssl-standalone.sh
+```
+
+### Check What's Running
+```bash
+# See all processes on port 80
+sudo lsof -i :80
+
+# See all processes on port 443
+sudo lsof -i :443
+
+# See all Docker containers
+docker ps -a
+
+# See system services
+systemctl list-units | grep -E "nginx|apache"
+```
+
+### Stop Conflicting Services
+```bash
+# Stop system nginx
+sudo systemctl stop nginx
+sudo systemctl disable nginx
+
+# Stop system apache
+sudo systemctl stop apache2
+sudo systemctl disable apache2
+
+# Stop all Docker containers
+docker stop $(docker ps -q)
+```
+
 ## Emergency Commands
 
 ### Stop Everything
